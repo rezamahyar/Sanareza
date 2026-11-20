@@ -17,12 +17,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Unzip project
+        run: |
+          ZIP=$(find . -maxdepth 2 -name '*.zip' -not -path './.git/*' | head -n 1)
+          if [ -n "$ZIP" ]; then
+            echo "Unzipping $ZIP"
+            unzip -q -o "$ZIP" -d .
+          else
+            echo "No zip found, continuing"
+          fi
+          ls -la
+
       - name: Locate Flutter project
         run: |
-          PUB=$(find . -maxdepth 3 -name pubspec.yaml -not -path '*/.*' | head -n 1)
+          PUB=$(find . -maxdepth 4 -name pubspec.yaml -not -path '*/.*' -not -path '*/__MACOSX/*' | head -n 1)
           if [ -z "$PUB" ]; then
             echo "::error::pubspec.yaml not found in repo. Repo contains:"
-            ls -la
+            ls -laR | head -n 100
             exit 1
           fi
           DIR=$(dirname "$PUB")
@@ -55,46 +66,46 @@ jobs:
           flutter create --platforms=android --org com.hybridai --project-name hybrid_ai_app .
           rm -rf test
           cat > android/app/src/main/AndroidManifest.xml <<'MANIFEST_EOF'
-            <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-                <uses-permission android:name="android.permission.INTERNET" />
-                <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-                    android:maxSdkVersion="32" />
-                <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-                <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-                <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-                    android:maxSdkVersion="28" />
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+                  android:maxSdkVersion="32" />
+              <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+              <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+              <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+                  android:maxSdkVersion="28" />
 
-                <application
-                    android:label="Hybrid AI"
-                    android:name="${applicationName}"
-                    android:icon="@mipmap/ic_launcher"
-                    android:usesCleartextTraffic="true">
-                    <activity
-                        android:name=".MainActivity"
-                        android:exported="true"
-                        android:launchMode="singleTop"
-                        android:theme="@style/LaunchTheme"
-                        android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
-                        android:hardwareAccelerated="true"
-                        android:windowSoftInputMode="adjustResize">
-                        <meta-data
-                          android:name="io.flutter.embedding.android.NormalTheme"
-                          android:resource="@style/NormalTheme" />
-                        <intent-filter>
-                            <action android:name="android.intent.action.MAIN"/>
-                            <category android:name="android.intent.category.LAUNCHER"/>
-                        </intent-filter>
-                    </activity>
-                    <meta-data android:name="flutterEmbedding" android:value="2" />
-                </application>
+              <application
+                  android:label="Hybrid AI"
+                  android:name="${applicationName}"
+                  android:icon="@mipmap/ic_launcher"
+                  android:usesCleartextTraffic="true">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:launchMode="singleTop"
+                      android:theme="@style/LaunchTheme"
+                      android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+                      android:hardwareAccelerated="true"
+                      android:windowSoftInputMode="adjustResize">
+                      <meta-data
+                        android:name="io.flutter.embedding.android.NormalTheme"
+                        android:resource="@style/NormalTheme" />
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+                  <meta-data android:name="flutterEmbedding" android:value="2" />
+              </application>
 
-                <queries>
-                    <intent>
-                        <action android:name="android.intent.action.PROCESS_TEXT"/>
-                        <data android:mimeType="text/plain"/>
-                    </intent>
-                </queries>
-            </manifest>
+              <queries>
+                  <intent>
+                      <action android:name="android.intent.action.PROCESS_TEXT"/>
+                      <data android:mimeType="text/plain"/>
+                  </intent>
+              </queries>
+          </manifest>
           MANIFEST_EOF
           echo "Manifest applied"
 
