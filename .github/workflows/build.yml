@@ -1,0 +1,64 @@
+name: Build Release APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    name: Build Flutter APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: 'stable'
+          cache: true
+
+      - name: Print Flutter version
+        run: flutter --version
+
+      - name: Bootstrap Android platform folders
+        run: |
+          flutter create --platforms=android --org com.hybridai --project-name hybrid_ai_app .
+          cp -f ci_assets/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          rm -rf test
+          echo "✓ Manifest applied"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze (non-fatal)
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings || true
+
+      - name: Build Release APK
+        run: flutter build apk --release
+
+      - name: Rename & collect artifact
+        run: |
+          mkdir -p release
+          cp build/app/outputs/flutter-apk/app-release.apk \
+             release/hybrid-ai-app-${{ github.run_number }}.apk
+          ls -lh release/
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hybrid-ai-app-apk-${{ github.run_number }}
+          path: release/hybrid-ai-app-${{ github.run_number }}.apk
+          retention-days: 30
